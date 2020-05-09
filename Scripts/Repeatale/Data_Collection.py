@@ -6,6 +6,8 @@ import Data_Proccessing
 import Game_Collection
 
 #Making This compatible for Git and Jupyter NB
+#This will allow me to share my work with others
+
 '''
 Each Week                                                        /    
     -Get the data just as before excluding the unecessary data \/                                                 /
