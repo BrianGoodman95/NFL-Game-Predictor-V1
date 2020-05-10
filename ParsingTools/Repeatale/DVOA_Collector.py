@@ -244,7 +244,7 @@ class DVOA_DATA():
             seasonName = self.Train_Test_Seasons[1][0]
         except IndexError:
             seasonName = "All Seasons"
-        self.dvoa_dataset.to_csv(f'{self.project_path}/Train_Test_Data/{seasonName} {self.DVOA_Type} Picking Results.csv', index=False)
+        self.dvoa_dataset.to_csv(f'{self.ML_path}/Train_Test_Data/{seasonName} {self.DVOA_Type} Picking Results.csv', index=False)
 
         #Evaluate Picks
         Right_Picks = self.EGO_Data[6]
