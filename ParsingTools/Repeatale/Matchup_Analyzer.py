@@ -216,7 +216,7 @@ class NFL_DATA_MODEL():
         print(self.corr)
         self.Filter_Trends()
         #Make Plots for the stat
-        if self.year == 2019 and self.week >= 15 and self.ego_score_prediction!= 0:
+        if self.year == 2019 and self.week >= 15 and self.ego_score_prediction!= 0 and self.DVOA_Type == 'WDVOA':
             self.Do_Graphing()      
           
     def Track_Correlations(self):
