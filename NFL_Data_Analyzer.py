@@ -4,9 +4,9 @@ from ParsingTools.Repeatale import Matchup_Analyzer
 from ParsingTools.Repeatale import Data_Evaluation
 from ParsingTools.Setup import Directory_setup
 
-min_season = 2006
+min_season = 2019
 latest_season = 2019
-min_week = 6
+min_week = 14
 latest_week_of_lastest_season = 16
 dvoaTypes = ["DVOA", "WDVOA"]
 
