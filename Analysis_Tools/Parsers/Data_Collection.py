@@ -103,13 +103,15 @@ class NFL_DATA_COLLECTER():
         #     print('Directory already made')
 
     def Make_Folder(self, new_path):
-        path_exists = False
+        data_exists = False
         try:
             os.mkdir(new_path)
         except:
             print('folder exists')
-            path_exists = True
-        return path_exists
+            files = os.listdir(new_path)
+            if len(files) > 1:
+                data_exists = True
+        return data_exists
     
     def Concat_and_Save(self, df_list, path):
         df = pd.concat(df_list) #Concat the list of dfs into a season df
@@ -240,8 +242,8 @@ class NFL_DATA_COLLECTER():
                 print(f'Week: {self.week}')
                 #Make the folder for data
                 self.week_path = f'{self.season_path}/Week {self.week}'
-                Path_Exists = self.Make_Folder(self.week_path)
-                if Path_Exists and self.season != self.max_season and self.Read_Previous_Data == True:
+                Data_Exists = self.Make_Folder(self.week_path)
+                if Data_Exists and self.season != self.max_season and self.Read_Previous_Data == True:
                     #Read csv that already exists
                     self.Week_DF = pd.read_csv(f'{self.week_path}/Week {self.week} Opponent Combined Data.csv')
                     self.All_Weeks_DF_List.append(self.Week_DF)
