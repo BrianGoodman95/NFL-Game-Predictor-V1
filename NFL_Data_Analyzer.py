@@ -1,8 +1,8 @@
-from ParsingTools.Repeatale import Data_Collection
-from ParsingTools.Repeatale import DVOA_Collector
-from ParsingTools.Repeatale import Matchup_Analyzer
-from ParsingTools.Repeatale import Data_Evaluation
-from ParsingTools.Setup import Directory_setup
+from Analysis_Tools.Parsers import Data_Collection
+from Analysis_Tools.Parsers import DVOA_Collector
+from Analysis_Tools.Parsers import Matchup_Analyzer
+from Analysis_Tools.Parsers import Data_Evaluation
+from Analysis_Tools.Setup import Directory_setup
 
 min_season = 2019
 latest_season = 2019

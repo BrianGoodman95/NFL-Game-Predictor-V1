@@ -2,8 +2,8 @@ import pandas as pd
 import time
 import os
 import requests
-from ParsingTools.Repeatale import Data_Proccessing
-from ParsingTools.Repeatale import Game_Collection
+from Analysis_Tools.Parsers import Data_Proccessing
+from Analysis_Tools.Parsers import Game_Collection
 
 
 '''
