@@ -6,7 +6,7 @@ from Analysis_Tools.Setup import Directory_setup
 
 min_season = 2019
 latest_season = 2019
-min_week = 14
+min_week = 6
 latest_week_of_lastest_season = 16
 dvoaTypes = ["DVOA", "WDVOA"]
 
