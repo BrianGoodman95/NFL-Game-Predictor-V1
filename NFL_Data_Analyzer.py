@@ -17,14 +17,14 @@ project_path = setup.project_path
 
 # Acquire all the Raw Statistical Data for teams historically and process it into a standard format
 # Create set of standard Stats for each team and opponent for every game
-# DataCollector = Data_Collection.NFL_DATA_COLLECTER(project_path, latest_week_of_lastest_season)
-# DataCollector.Do_Stuff()
+DataCollector = Data_Collection.NFL_DATA_COLLECTER(project_path, latest_week_of_lastest_season)
+DataCollector.Do_Stuff()
 
 for DVOA_Type in dvoaTypes:
     # Acquire all the DVOA rating data for teams historically, build a model with it, 
     # Use model to assign an Expected Game Outcome (EGO) and add to the standard format of Data
-    # DVOACollector = DVOA_Collector.DVOA_DATA(project_path, latest_week_of_lastest_season, latest_season, DVOA_Type)
-    # DVOACollector.Do_Stuff()
+    DVOACollector = DVOA_Collector.DVOA_DATA(project_path, latest_week_of_lastest_season, latest_season, DVOA_Type)
+    DVOACollector.Do_Stuff()
 
     #Analyze the processed statistical data to look at the matchups between the teams of each game for 6 Main Stats:
         # Passing Offense vs Opp Passing Defense, Passing Defense vs Opp Passing Offense, Rushing Offense vs Opp Rushing Defense, Rushing Defense vs Opp Rushing Offense, Oline vs Opps DLine, Dline vs Opp Oline
