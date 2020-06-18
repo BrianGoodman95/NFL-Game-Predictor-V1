@@ -26,9 +26,10 @@ class PRREDICTION_DATA_EVALUATOR():
             print("BAD DVOA TYPE ENTERED")
         self.time = time
         self.project_path = project_path
-        self.Total_Prediction_Data_Path = f'{self.project_path}/Total Data/Total {self.DVOA_Type} Prediction Data.csv'
-        self.Moving_Avg_Plot_Path = f'{self.project_path}/Total Data/Evaluations/'
-        # self.Make_Folder(self.Moving_Avg_Plot_Path)
+        self.data_path = self.project_path.replace("Notebooks", "Data")
+        self.Total_Prediction_Data_Path = f'{self.data_path}/Total Data/Total {self.DVOA_Type} Prediction Data.csv'
+        self.Moving_Avg_Plot_Path = f'{self.project_path}/Evaluations/'
+        self.Make_Folder(self.Moving_Avg_Plot_Path)
         self.moving_windows = [250, 500]
         self.Prediction_Cols = ["DVOA Pick Right", "Matchup Adj Pick Rigt"]
         self.EGODiff_Cols = ["DVOA EGO to Spread Diff", "Matchup Adj EGO to Spread Diff"]
@@ -67,10 +68,13 @@ class PRREDICTION_DATA_EVALUATOR():
             data.append(trace)
         x_axis_label = f'{x_axis_name}'
         y_axis_label = f'{y_axis_name}'
-        plotly.offline.plot({
-        "data": data,
-        "layout": go.Layout(title=go.layout.Title(text=plt_title, xref="paper", x=0.5), showlegend=True, xaxis=dict(title = x_axis_label, autorange='reversed', color="#000", gridcolor="rgb(232, 232, 232)"), yaxis = dict(title = y_axis_label, color="#000", gridcolor="rgb(232, 232, 232)"),  plot_bgcolor='rgba(0,0,0,0)')
-        }, filename = plt_save_name, auto_open=False)
+        # plotly.offline.plot({
+        # "data": data,
+        # "layout": go.Layout(title=go.layout.Title(text=plt_title, xref="paper", x=0.5), showlegend=True, xaxis=dict(title = x_axis_label, autorange='reversed', color="#000", gridcolor="rgb(232, 232, 232)"), yaxis = dict(title = y_axis_label, color="#000", gridcolor="rgb(232, 232, 232)"),  plot_bgcolor='rgba(0,0,0,0)')
+        # }, filename = plt_save_name, auto_open=False)
+        layout = go.Layout(title=go.layout.Title(text=plt_title, xref="paper", x=0.5), showlegend=True, xaxis=dict(title = x_axis_label, autorange='reversed', color="#000", gridcolor="rgb(232, 232, 232)"), yaxis = dict(title = y_axis_label, color="#000", gridcolor="rgb(232, 232, 232)"),  plot_bgcolor='rgba(0,0,0,0)')
+        fig = go.Figure(data=data, layout=layout)
+        fig.show(renderer='notebook')
 
     def Do_Graphing(self):
         # #Make Plotting Hover Data and save path
