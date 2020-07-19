@@ -5,7 +5,8 @@ class Create_Directories():
     def __init__(self):
         dir_path = pathlib.Path().absolute()
         Data_Path = "Data"
-        self.project_path = f'{str(dir_path)}\{Data_Path}'
+        # self.project_path = f'{str(dir_path)}\{Data_Path}'
+        self.project_path = f'{str(dir_path)}/{Data_Path}'
         try:
             os.mkdir(Data_Path)
         except FileExistsError:
@@ -17,3 +18,5 @@ class Create_Directories():
                 print(f'Created Directory {folder_path}')
             except FileExistsError:
                 print(f'Directory {folder_path} already exists')
+
+# /Users/briangoodman/Documents/GitHub/NFL-Game-Predictor-V1/Data/Raw Data/All Seasons Results.csv
