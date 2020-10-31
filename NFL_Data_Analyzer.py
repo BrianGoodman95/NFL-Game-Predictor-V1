@@ -9,7 +9,6 @@ from Analysis_Tools.Setup import Directory_setup
 setup = Directory_setup.Create_Directories()
 project_path = setup.project_path
 
-
 '''
 Want 2 modes
     Historical Model - DONE (Use as is)
