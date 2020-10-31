@@ -107,6 +107,7 @@ class Cleanup_Proccessing(PROCCESS_DATA):
                 print(No_Games_Teams)
         No_Data_Teams = Bye_Week_Teams + No_Games_Teams
         print(No_Data_Teams)
+        print(self.Week_DF.tail())
         time.sleep(2)
         for row in No_Data_Teams:
             self.Week_DF.drop([row], inplace=True)
@@ -180,8 +181,12 @@ class Cleanup_Proccessing(PROCCESS_DATA):
     def Make_To_Covered_Not(self):
         temp_list = []
         five_class_src = self.Week_DF["Spread Result Class"].tolist()
+        print(five_class_src)
         spreads = self.Week_DF["Spread"].tolist()
         for val in range(0,len(five_class_src)):
+            print('val')
+            print(five_class_src[val])
+            print('val')
             src = float(five_class_src[val])
             spread = float(spreads[val])
             if src == 0: #Must have been a push
@@ -211,6 +216,8 @@ class Cleanup_Proccessing(PROCCESS_DATA):
     def Do_Stuff(self):
         #Get Dataframe
         self.Week_DF = self.df
+        print(self.Week_DF)
+        print('Week DF')
         self.df_headers = list(self.Week_DF)
         #Make pretty
         self.Cleanup_Units()
@@ -428,6 +435,7 @@ class Make_Rankings(PROCCESS_DATA):
         #Get Current Week
         self.Week_DF = self.Get_Week_Data(self.week) #Get this week's data
         print(self.Week_DF)
+        print('HERE')
         self.Take_Unranked_Cols() #Put Non-Ranked Stats into Dataframe
         ranked_df = self.Make_Rated(self.Week_DF, self.Rank_Stats) #Make Ranked Stats Ranked
         self.Add_DFs(ranked_df) #Add the ranked columns to the Ranked DF

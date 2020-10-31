@@ -105,7 +105,8 @@ class DVOA_DATA():
         self.DVOA_Diff_Groups.sort()
         print(self.DVOA_Diff_Groups)
         
-        self.Train_Test_Seasons = [[2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019], []]
+        self.Train_Test_Seasons = [[i for i in range(2006,self.max_season+1)], []]
+        # self.Train_Test_Seasons = [[2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019], []]
         # self.Train_Test_Seasons = [[2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019]]
 
     def Initialize_Data(self):
@@ -528,6 +529,7 @@ class DVOA_DATA():
     def Do_Stuff(self):
         for self.iteration in range(0, len(self.Train_Test_Seasons[0])+1):
             self.Train_Test_Seasons = [[2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019], []]
+            self.Train_Test_Seasons = [[i for i in range(2006,self.max_season+1)], []]
             #In this case we are using the entire dataset for training the next season (2020) and saving it in the Total Folder
             if self.iteration == len(self.Train_Test_Seasons[0]): 
                 del self.Train_Test_Seasons[-1]

@@ -25,6 +25,7 @@ class HISTORICAL_PARSING():
         Spread_Result_Diff = []
         Spread_Result_Class = []
         spreads = self.Week_DF['Spread'].tolist()
+        print(spreads)
         game_margins = self.Week_DF['Game Scoring Margin'].tolist()
         for tm in range(0,len(spreads)):
             try:
@@ -48,10 +49,19 @@ class HISTORICAL_PARSING():
                         else:
                             Spread_Result_Class.append(-1*self.Result_Markers[result_type]) #Flip the sign
                             break
+                    elif math.isnan(float(spreads[tm])):
+                        print('NAN detected')
+                        Spread_Result_Class.append(0)
+                        Spread_Result_Diff[-1]=0
+                        break
             except:
+                print('HERE')
+                print(spreads[tm])
                 Spread_Result_Diff.append("")
                 Spread_Result_Class.append("")
                 # self.Week_DF.drop([tm], inplace=True)
+        print(spreads)
+        print(len(spreads))
         print(len(Spread_Result_Diff))
         print(len(Spread_Result_Class))
         self.Week_DF['Spread to Result Difference'] = Spread_Result_Diff #Spread+PD - Really negative means favoured team lost or won by less than expected or unfavoured lost by more than expected, really positive means favoured team won by more than expected or unfavoured team won, close to zero means outcome was similar to spread
@@ -204,26 +214,159 @@ class HISTORICAL_PARSING():
         return self.Week_DF
 
 class Betting_Parsing():
-    def __init__(self, Week_DF):
-        self.Week_DF = Week_DF
-        self.Result_Levels = [-9, -0.5, 0, 9, 100] #Big Upset, Upset, Neatural, Neutral, Blowout, Beatdown
-        self.Result_Markers = [-2, -1, 0, 1, 2]
+    def __init__(self, week_teams, project_path):
+        self.project_path = project_path
+        self.week_teams = week_teams
+        self.source = f'https://www.covers.com/sport/football/NFL/odds'
 
     def Get_Bet_Stats(self):
-        URL = f'https://www.oddsshark.com/nfl/computer-picks'
-        print(URL)
-        time.sleep(10)
-        # URL = f'https://www.teamrankings.com/nfl-odds-week-{self.week}.htm'
-        html = requests.get(URL).content
-        # print(html)
-        try:
-            df_list = pd.read_html(html, header=0, index_col=None)
-        except:
-            print(URL)
-        print(df_list)
-        print(df_list[0])
-        print(df_list[-1])
-        time.sleep(10)
+        #Query the Data from Online
+        # URL = f'https://www.donbest.com/nfl/odds/'
+        # print(URL)
+        found_data = False
+        attempts = 0
+        print('Retrieving Latest NFL Odds ...')
+        while not found_data:
+            time.sleep(1)
+            attempts+=1
+            html = requests.get(self.source).content
+            try:
+                df_list = pd.read_html(html, header=0, index_col=None)
+                print("Found Data!")
+                found_data = True
+            except:
+                print("Couldn't Retrieve Data")
+                print('Attempting Again')
+                found_data = False
+            if attempts > 10:
+                found_data = True
+                print('Too many failed attempts. Aborting ...')
+        
+        print('Collecting Data ...')
+        time.sleep(1)
+        #Put the Data into Dataframe format
+        Week_DFs = []
+        matchup_df = df_list[2] #3rd table
+        spreads_df = df_list[3] #4th table
+        betting_spreads = spreads_df.iloc[:,-1] #Get the last column
+        betting_spreads2 = list(spreads_df.iloc[:,-1]) #Get the last column
+        matchup_df['Betting Spread'] = betting_spreads2
+    
+        #Clean up the Data
+        all_cols = list(matchup_df)
+        good_cols = ['Game', 'Open', 'Betting Spread']
+        #Drop Other unneeded columns
+        for col in all_cols:
+            if col not in good_cols:
+                matchup_df.drop(col, axis=1, inplace=True)
+        #Drop nan rows
+        matchup_df.dropna(axis=0, how="any", inplace=True)
+        # matchup_df = matchup_df[1:] #take the data less the header row
+        time.sleep(5)
+        # matchup_df.to_csv(f'raw_spreads.csv', index=False)
+        return matchup_df
+
+    def format_game_data(self, df):
+        print('Formatting Data ...')
+        time.sleep(1)
+        game_col = df['Game'].tolist()
+        newCols = ['Game Time', 'Team 1', 'Team 2']
+        newData = [[] for i in range(len(newCols))]
+        for game in game_col:
+            game_data = game.split('  ')
+            dps = len(game_data)
+            if dps > 5: #Game in progress or finished
+                team1_pos = dps-5
+                team2_pos = dps-3
+            else:
+                team1_pos = dps-3
+                team2_pos = dps-2
+            team1 = game_data[team1_pos]
+            # team1 = game_data[dps-2-(2*score_pos)]
+            team2 = game_data[team2_pos]
+            # team2 = game_data[dps-1-score_pos]
+            game_time = f'{game_data[0]}'# {game_data[1]}'
+            newData[0].append(game_time)
+            newData[1].append(team1)
+            newData[2].append(team2)
+        for i in range(0, len(newData)):
+            df[newCols[i]] = newData[i]
+        del df['Game']
+        cols = list(df)
+        ordered_cols = cols[-3:] + cols[:-3]
+        df = df[ordered_cols]
+        # print(df)
+        return df
+
+    #Format the Spread Values
+    def format_spreads(self, df):
+        print('Saving Data ...')
+        time.sleep(1)
+        open_spreads = list(df['Open'])
+        bet_spreads = list(df['Betting Spread'])
+        for game in range(len(open_spreads)):
+            open_spread_parts = str(open_spreads[game]).split('  ')
+            open_spread = f'{open_spread_parts[0]} / {open_spread_parts[1]}'
+            open_spreads[game] = open_spread
+            bet_spread_parts = str(bet_spreads[game]).split(' ')
+            # print(bet_spread_parts)
+            bet_spread = f'{bet_spread_parts[0]} / {bet_spread_parts[3]}' 
+            bet_spreads[game] = bet_spread
+        df['Open'] = open_spreads
+        df['Betting Spread'] = bet_spreads
+        # print(df)
+        return df
+
+    def match_to_week_data(self, df):
+        # week_teams = self.Week_DF['Team'].tolist()
+        spread_teams = df['Team 1'].tolist() + df['Team 2'].tolist()
+        formated_spreads = df['Betting Spread'].tolist()
+        self.week_spreads = ['' for i in range(len(self.week_teams))]
+        spreads = []
+        for t in range(0,2):
+            for s in formated_spreads:
+                spread_parts = s.split(' / ')
+                spread = spread_parts[t]
+                if '+' in spread:
+                    spread = spread.replace("+", "")
+                spreads.append(spread)
+        print(spreads)
+        for st in range(0,len(spread_teams)): #For each team in the spread data
+            Scores = [0 for i in range(len(self.week_teams))]
+            for wt in range(0, len(self.week_teams)): #For each team in the original data
+                for sl in range(1, len(spread_teams[st])): #For each letter of the team in that spread data
+                    #Check if first letter matches. This is a must.
+                    if spread_teams[st][0] == self.week_teams[wt][0]:
+                        Scores[wt]+=1
+                        for wl in range(1, len(self.week_teams[wt])): #For each letter of the team in that original dat
+                            if spread_teams[st][sl] == self.week_teams[wt][wl]:
+                                Scores[wt]+=1
+
+            last_hs = 0
+            for score in range(0, len(Scores)):
+                if Scores[score] > last_hs:
+                    last_hs = Scores[score]
+                    hs_pos = score
+            self.week_spreads[hs_pos] = spreads[st]
+        print(self.week_spreads)
+        # time.sleep(10)
+
+    def save_spreads(self, df):
+        #rename columns to standard format
+        df = df.rename(columns={"Open": "Opening Spread"})
+        final_cols = ['Opening Spread', 'Team 1', 'Team 2', 'Game Time', 'Betting Spread']
+        df = df.reindex(columns=final_cols)
+        print(df)
+        df.to_csv(f'{self.project_path}/Raw Data/latest_spreads.xlsx', index=False)
+
+    def Get_Current_Spreads(self):
+        raw_df = self.Get_Bet_Stats()
+        game_df = self.format_game_data(raw_df)
+        formatted_df = self.format_spreads(game_df)
+        # self.match_to_week_data(formatted_df)
+        self.save_spreads(formatted_df)
+        
+        return self.week_spreads
 
 class This_Week_Parsing():
     def __init__(self, season, week, min_week, All_Season_Teams, season_path):
@@ -263,7 +406,6 @@ class This_Week_Parsing():
         self.All_Week_Teams.sort()# = sort(self.All_Week_Teams)
         print(self.All_Week_Teams)
 
-
     def Check_Team_Letters(self, tm_num):
         match = True
         long_name = self.All_Week_Teams[tm_num].lower()
@@ -293,7 +435,7 @@ class This_Week_Parsing():
             if match == False: #All Letters were same so action needed
                 print(self.All_Season_Teams[tm_num])
                 time.sleep(1)
-                for pos in [-1, 1, 2]:
+                for pos in [-2, -1, 1, 2]:
                     if tm_num+pos < len(self.All_Week_Teams):
                         match = self.Check_Team_Letters(tm_num+pos)
                         if match == True:
@@ -331,7 +473,6 @@ class This_Week_Parsing():
             self.Make_Naming_Reference() #- Not same alphabetical order
         self.Change_Team_Names()
         self.Get_Team_Names()
-       
         return self.All_Week_Teams, self.Week_Sched_DF
         
 class This_Week_Stats():

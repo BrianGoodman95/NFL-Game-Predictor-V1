@@ -38,7 +38,7 @@ Each Week                                                        /
 
 class NFL_DATA_COLLECTER():
 
-    def __init__(self, project_path, latest_week):
+    def __init__(self, project_path, mode='Historical', latest_week=16, max_season=2019):
         self.time = time
         #Dictionary of stat names to use in search on database, corresponding name in html table and name to be used in dataframe for the collumn
         #Some search names have muliple table collumns to be collected
@@ -72,11 +72,22 @@ class NFL_DATA_COLLECTER():
                             'My Headers': ['Game Scoring Margin']
             }
         }
-        self.min_week = 2
-        self.max_week = 16
-        self.last_season_max_week = latest_week
-        self.min_season = 2006
-        self.max_season = 2019
+        self.mode = mode
+        if self.mode == 'Historical':
+            self.min_week = 2
+            self.max_week = 16
+            self.min_season = 2006
+            self.last_season_max_week = latest_week
+            self.max_season = max_season
+            self.final_csv_name = 'All Seasons Results'
+        elif self.mode == 'This Season':
+            self.min_week = 2 #latest_week - 1
+            self.max_week = latest_week
+            self.last_season_max_week = latest_week
+            self.max_season = max_season
+            self.min_season = self.max_season
+            self.final_csv_name = f'{self.max_season}/This Season Results'
+
         self.Read_Previous_Data = True
         #Define Years which Data is being collected for
         self.All_Search_Seasons = [n for n in range(self.min_season,self.max_season+1)]
@@ -97,10 +108,7 @@ class NFL_DATA_COLLECTER():
         # self.project_path = 'E:/Project Stuff/Data Analysis Stuff/V5/NFL Data V1/Raw Data'
         self.project_path = project_path
         self.data_path = f'{project_path}/Raw Data'
-        # try:
-        #     os.mkdir(self.data_path)
-        # except FileExistsError:
-        #     print('Directory already made')
+
 
     def Make_Folder(self, new_path):
         data_exists = False
@@ -118,10 +126,8 @@ class NFL_DATA_COLLECTER():
         df.to_csv(path, index=False)
         return df
 
-
     def Track_All_Oppononents(self):
         self.Opponent_Tracking_DF[f'Week {self.week} Opp'] = self.Week_DF['Opponent'].tolist()
-
 
     def Get_DF(self):
         #Get the df from the website
@@ -159,28 +165,34 @@ class NFL_DATA_COLLECTER():
         # print(These_Teams)
 
     def Setup_This_Week_Stats(self):
-        if self.season == 2019:
+        if self.season == self.max_season:
             This_Week_Game_Info = Game_Collection.This_Week_Parsing(self.season, self.week, self.min_week, self.All_Season_Teams, self.season_path)
             This_Week_Teams, Sched_Week_DF = This_Week_Game_Info.Setup_This_Week_Data()
+            print(This_Week_Teams)
             if self.week == self.min_week:
                 self.last_week_teams = This_Week_Teams
             #Get the location of missing teams relative to the list of all teams for the season
-            self.Match_By_Teams(This_Week_Teams)
+            # self.Match_By_Teams(This_Week_Teams)
         else:
             This_Week_Teams = self.All_Season_Teams
         #Add the team list for this week (should be same for every week of the season)
+        print(This_Week_Teams)
+        print('There')
+        print(This_Week_Teams)
         self.Week_DF['Team'] = This_Week_Teams
-        self.Week_DF['Week'] = [self.week for i in range(len(This_Week_Teams))]
+        self.Week_DF.dropna(axis=0, how="any", inplace=True)
+        self.Week_DF['Week'] = [self.week for i in range(len(self.Week_DF['Team'].tolist()))]
         #Get the information about this week's games
-        if self.season == 2019:
+        if self.season == self.max_season:
             This_Week_Game_Info = Game_Collection.This_Week_Stats(self.last_week_teams, self.Week_DF, Sched_Week_DF)
             self.Week_DF = This_Week_Game_Info.Get_Info()
             self.last_week_teams = This_Week_Teams
+        print('HERE')
         print(self.Week_DF)
 
     def Collect_Data(self, stat_type):
         #Get the df from the website
-        if self.season == 2019 and self.week == self.max_week and ("Results Stats" in stat_type or "Betting Stats" in stat_type):
+        if self.season == self.max_season and self.week == self.max_week and ("Results Stats" in stat_type or "Betting Stats" in stat_type):
             print("Dont Get DF")
         else:
             sorted_df = self.Get_DF()
@@ -190,34 +202,45 @@ class NFL_DATA_COLLECTER():
         next_df_header_pos = 0
         for header_pos in range(self.first_available_stat_header, self.first_available_stat_header + self.Search_Stat_Dict[stat_type]['Number of Headers'][self.search_stat_pos]):
             print(self.Search_Stat_Dict[stat_type]['Table Headers'][header_pos])
-            if self.season == 2019 and self.week == self.max_week and ("Results Stats" in stat_type or "Betting Stats" in stat_type):
+            #For Spreads and Results, Need to treat differently
+            if self.season == self.max_season and self.week == self.max_week and ("Results Stats" in stat_type or "Betting Stats" in stat_type) and self.mode != 'Historical':
+                #For spreads, will get data from seperate source
                 if "Spread" in self.Search_Stat_Dict[stat_type]['My Headers'][header_pos]:
-                    latest_spreads_path = f'{self.project_path}/Templates/Latest Week Spreads.csv'
-                    latest_spreads_df = pd.read_csv(latest_spreads_path)
-                    self.Week_DF[self.Search_Stat_Dict[stat_type]['My Headers'][header_pos]] = latest_spreads_df["Spread"].tolist()
+                    spread_collector = Game_Collection.Betting_Parsing(self.Week_DF, self.project_path)
+                    latest_spreads = spread_collector.Get_Current_Spreads()
+                    self.Week_DF[self.Search_Stat_Dict[stat_type]['My Headers'][header_pos]] = latest_spreads
+                    print(self.Week_DF['Spread'].tolist())
+                    # time.sleep(10)
+                    # latest_spreads_path = f'{self.project_path}/Templates/Latest Week Spreads.csv'
+                    # latest_spreads_df = pd.read_csv(latest_spreads_path)
+                    # print(latest_spreads_df["Spread"].tolist())
+                    # self.Week_DF[self.Search_Stat_Dict[stat_type]['My Headers'][header_pos]] = latest_spreads_df["Spread"].tolist()
+                #For results, there are none yet so populate with 0s
                 else:
                     self.Week_DF[self.Search_Stat_Dict[stat_type]['My Headers'][header_pos]] = [0 for i in range(len(self.All_Season_Teams))]
+                print('last week')
+            #For rest of stats get conventionally
             else:
                 for df_header_pos in range(next_df_header_pos, len(df_headers)):
                     if self.Search_Stat_Dict[stat_type]['Table Headers'][header_pos] == df_headers[df_header_pos]:
                         self.listed_stat = sorted_df[self.Search_Stat_Dict[stat_type]['Table Headers'][header_pos]].tolist()
-                        #print(len(self.listed_stat))
                         #Normalize the team list to all teams for the season
                         for pos in self.Blank_Positions:
                             self.listed_stat.insert(pos, "")
-                        #print(len(self.listed_stat))
+                        print(len(self.listed_stat))
+                        print(self.listed_stat)
                         self.Week_DF[self.Search_Stat_Dict[stat_type]['My Headers'][header_pos]] = self.listed_stat
                         print(self.Week_DF.head())
-                        #next_df_header_pos = df_header_pos
                         break
-        #self.time.sleep(3)
 
     def Setup_Data_Search(self):
         for self.season in self.All_Search_Seasons:
             print(f'Season: {self.season}')
             if self.season == self.max_season:
-                # self.max_week = self.last_season_max_week ##IF WANT THE LAST WEEK NOT TOO LOOK FOR SCORES (SINCE DON"T EXIST YET)
-                self.max_week = self.last_season_max_week+1 ##IF WANT THE LAST WEEK TO LOOK FOR SCORES
+                if self.mode == 'This Season':
+                    self.max_week = self.last_season_max_week ##IF WANT THE LAST WEEK NOT TOO LOOK FOR SCORES (SINCE DON"T EXIST YET)
+                elif self.mode == 'Historical':
+                    self.max_week = self.last_season_max_week+1 ##IF WANT THE LAST WEEK TO LOOK FOR SCORES
                 self.All_Search_Weeks = [n for n in range(self.min_week,self.max_week+1)] #Stats heading into Weeks 2 through 10 games
                 if self.max_week == self.last_season_max_week+1: #Get rid of the last week in this case where we added it to the max week
                     del self.All_Search_Weeks[-1] 
@@ -232,7 +255,8 @@ class NFL_DATA_COLLECTER():
             self.All_Cleaned_Weeks_DF_List = []
 
             #Get all teams list for that season
-            self.URL_BASE = f'https://www.pro-football-reference.com/play-index/tgl_finder.cgi?request=1&match=single&year_min={self.season}&year_max={self.season}&game_type=R&game_num_min=0&game_num_max=99&week_num_min=1&week_num_max=17&temperature_gtlt=lt&league_id=NFL&c5val=1.0&order_by=points_diff'
+            # self.URL_BASE = f'https://www.pro-football-reference.com/play-index/tgl_finder.cgi?request=1&match=single&year_min={self.season}&year_max={self.season}&game_type=R&game_num_min=0&game_num_max=99&week_num_min=1&week_num_max=17&temperature_gtlt=lt&league_id=NFL&c5val=1.0&order_by=points_diff'
+            self.URL_BASE = f'https://stathead.com/football/tgl_finder.cgi?request=1&match=single&year_min={self.season}&year_max={self.season}&game_type=R&game_num_min=0&game_num_max=99&week_num_min=1&week_num_max=17&temperature_gtlt=lt&league_id=NFL&c5val=1.0&order_by=points_diff'
             self.All_Season_Teams = self.Get_Teams_List(self.season)
 
             #Add the Season Teams to the Opponent Tracker
@@ -243,10 +267,11 @@ class NFL_DATA_COLLECTER():
                 #Make the folder for data
                 self.week_path = f'{self.season_path}/Week {self.week}'
                 Data_Exists = self.Make_Folder(self.week_path)
-                if Data_Exists and self.season != self.max_season and self.Read_Previous_Data == True:
+                if Data_Exists and self.Read_Previous_Data == True and (self.season != self.max_season or self.week < self.last_season_max_week or self.mode == 'Historical'):
                     #Read csv that already exists
                     self.Week_DF = pd.read_csv(f'{self.week_path}/Week {self.week} Opponent Combined Data.csv')
                     self.All_Weeks_DF_List.append(self.Week_DF)
+                    self.last_week_teams = self.Week_DF['Team'].tolist()
                 else:
                     #Get Game Info for this week
                     #Clear the week_df
@@ -279,7 +304,7 @@ class NFL_DATA_COLLECTER():
                                 week_using = self.week-1
                             #Get the list of teams playing this week
                             # if self.season != 2019 or self.week != self.max_week:
-                            if self.season == 2019 and self.week == self.max_week and ("Results Stats" in stat_type or "Betting Stats" in stat_type):
+                            if self.season == self.max_season and self.week == self.max_week and ("Results Stats" in stat_type or "Betting Stats" in stat_type):
                                 print("Don't Match Teams") 
                             else:
                                 self.This_Stat_Teams = self.Get_Teams_List(self.season)
@@ -294,7 +319,7 @@ class NFL_DATA_COLLECTER():
                             self.search_stat_pos+=1
 
                     # #Get the information about this week's games ###To Do: MIGHT NEED TO ADD THE self.Week_DF RETURN FOR IT TO ACTUALLY UPDATE THE DATA
-                    if self.season != 2019:
+                    if self.season != self.max_season:
                         #Get the information about this week's games
                         This_Week_Game_Info = Game_Collection.HISTORICAL_PARSING(self.Week_DF, self.This_Stat_Teams, self.All_Season_Teams, self.season, self.week)
                         This_Week_Game_Info.Do_Game_Stuff()
@@ -320,7 +345,7 @@ class NFL_DATA_COLLECTER():
             season_opp_excel_name = f'{self.season_path}/{self.season} Opponents.csv'
             self.Opponent_Tracking_DF.to_csv(season_opp_excel_name, index=False)
 
-        project_excel_name = f'{self.data_path}/All Seasons Results.csv'
+        project_excel_name = f'{self.data_path}/{self.final_csv_name}.csv'
         self.Concat_and_Save(self.All_Seasons_DF_List, project_excel_name)
 
     def Do_Stuff(self):
