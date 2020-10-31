@@ -5,6 +5,7 @@ from Analysis_Tools.Parsers import Data_Evaluation
 from Analysis_Tools.Parsers import Game_Predictor
 from Analysis_Tools.Setup import Directory_setup
 
+#Testing
 # Set up all the working directories
 setup = Directory_setup.Create_Directories()
 project_path = setup.project_path
