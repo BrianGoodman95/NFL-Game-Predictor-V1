@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import time
 import math
 import os
@@ -6,7 +7,8 @@ import requests
 from urllib.request import urlopen
 
 class Spread_Parser():
-    def __init__(self, week, save_path):
+    def __init__(self, week, save_path, Enable_Messaging=False):
+        self.Enable_Messaging = Enable_Messaging
         self.week = week
         self.save_path = save_path
         self.source = f'https://www.covers.com/sport/football/NFL/odds'
@@ -15,12 +17,12 @@ class Spread_Parser():
             findSavedData = True #if next week folder exists, then this week isn't latest so look for saved spreads
         if findSavedData == True:
             try: #reading the next week. If can, that means this isn't the max week so shouldn't re-get the betting data
-                next_week_spreads = pd.read_csv(f'{self.save_path}/Week {self.week+1}/spreads.xlsx')
-                print("Checking For Saved Spreads ...")
-                time.sleep(0.5)
-                self.saved_df = pd.read_csv(f'{self.save_path}/Week {self.week}/spreads.xlsx')
-                print("Found Saved Data!")
-                time.sleep(0.5)
+                next_week_spreads = pd.read_csv(f'{self.save_path}/Week {self.week+1}/spreads.csv')
+                # print("Checking For Saved Spreads ...")
+                # time.sleep(0.5)
+                self.saved_df = pd.read_csv(f'{self.save_path}/Week {self.week}/spreads.csv')
+                # print("Found Saved Data!")
+                # time.sleep(0.5)
             except:
                 findSavedData = False
         if findSavedData == False: #Next week doesn't exist, so need to update this week since is the latest
@@ -30,27 +32,32 @@ class Spread_Parser():
             self.saved_df = self.save_spreads(self.formatted_df)
         self.parser_df = self.format_by_name(self.saved_df)
 
+    def User_Message(self, message, sleep=1):
+        if self.Enable_Messaging:
+            print(message)
+            time.sleep(sleep)
+
     def Get_Bet_Stats(self):
         found_data = False
         attempts = 0
-        print('Retrieving Latest NFL Odds ...')
+        self.User_Message('Searching For Latest NFL Odds ...')
         while not found_data:
             time.sleep(0.5)
             attempts+=1
             html = requests.get(self.source).content
             try:
                 df_list = pd.read_html(html, header=0, index_col=None)
-                print("Found Data!")
+                self.User_Message("Found Data!")
                 found_data = True
             except:
-                print("Couldn't Retrieve Data")
-                print('Attempting Again')
+                self.User_Message("Couldn't Retrieve Data")
+                self.User_Message('Attempting Again')
                 found_data = False
             if attempts > 10:
                 found_data = True
-                print('Too many failed attempts. Aborting ...')
+                self.User_Message('Too many failed attempts. Aborting ...')
         
-        print('Collecting Data ...')
+        self.User_Message('Collecting Data ...')
         time.sleep(0.5)
         #Put the Data into Dataframe format
         Week_DFs = []
@@ -75,7 +82,7 @@ class Spread_Parser():
         return matchup_df
 
     def format_game_data(self, df):
-        print('Formatting Data ...')
+        self.User_Message('Formatting Data ...')
         time.sleep(0.5)
         game_col = df['Game'].tolist()
         newCols = ['Game Time', 'Team 1', 'Team 2']
@@ -103,7 +110,7 @@ class Spread_Parser():
         cols = list(df)
         ordered_cols = cols[-3:] + cols[:-3]
         df = df[ordered_cols]
-        # print(df)
+        # self.User_Message(df)
         return df
 
     #Format the Spread Values
@@ -115,27 +122,28 @@ class Spread_Parser():
             open_spread = f'{open_spread_parts[0]} / {open_spread_parts[1]}'
             open_spreads[game] = open_spread
             bet_spread_parts = str(bet_spreads[game]).split(' ')
-            # print(bet_spread_parts)
+            # self.User_Message(bet_spread_parts)
             bet_spread = f'{bet_spread_parts[0]} / {bet_spread_parts[3]}' 
             bet_spreads[game] = bet_spread
         df['Open'] = open_spreads
         df['Betting Spread'] = bet_spreads
-        # print(df)
+        # self.User_Message(df)
         return df
 
     def save_spreads(self, df):
-        print('Saving Data ...')
+        self.User_Message('Saving Data ...')
         time.sleep(0.5)
         #rename columns to standard format
         df = df.rename(columns={"Open": "Opening Spread"})
         final_cols = ['Opening Spread', 'Team 1', 'Team 2', 'Game Time', 'Betting Spread']
         df = df.reindex(columns=final_cols)
-        print(df)
+        # self.User_Message(df)
         df.to_csv(f'{self.save_path}/Week {self.week}/spreads.xlsx', index=False)
+        df.to_csv(f'{self.save_path}/Week {self.week}/spreads.csv', index=False)
         return df
 
     def format_by_name(self, df):
-        print('Adding to Parser ...')
+        self.User_Message('Adding to Parser ...')
         time.sleep(0.5)
         name_formated_df = pd.DataFrame()
         #Get the 2 Team Name Cols we're combining
@@ -200,6 +208,10 @@ class Game_Info_Parser():
                         for header in Possible_WeightedDVOA_Names:
                             if header in pot_dvoaHeaders: #Have the weighted df
                                 WDVOA_DF =Pot_WDVOA_DF
+                                #Save DF and Change the WDVOA column to be named WDVOA
+                                cols = list(WDVOA_DF)
+                                new_cols = [x if x != header else 'WDVOA' for x in cols]
+                                WDVOA_DF.columns = new_cols
                                 have_df = True
                                 break
                 if have_df == True:
@@ -207,7 +219,7 @@ class Game_Info_Parser():
         except ValueError:
             pass
         if have_df == False: #Never found a good df
-            print(f'No Good DF: {self.season}, week {self.week}')
+            print(f'No Good Data: {self.season}, week {self.week}')
         
         #Drop any header rows
         WDVOA_DF.drop(WDVOA_DF.loc[WDVOA_DF['TEAM']=="TEAM"].index, inplace=True)
@@ -257,7 +269,7 @@ class Game_Info_Parser():
                         first_teams.append(1)
                         second_teams.append(0)
                     home_teams = first_teams+second_teams
-                Week_DF['Home Team'] = home_teams
+                Week_DF['Home_Team'] = home_teams
             else:
                 Week_DF[col] = Week_Sched_DF[col].tolist()*2
         return Week_DF
@@ -269,7 +281,7 @@ class Team_Matching():
         self.raw_dfs = dfs
         try:
             self.Name_Map = pd.read_csv(f'{self.raw_data_path}/Names.csv')
-            print(self.Name_Map)
+            # print(self.Name_Map)
         except:
             self.Name_Map = self.make_name_map(dfs)
         self.Combined_Raw_DF = self.Combine_DFs()
@@ -333,7 +345,7 @@ class Team_Matching():
 
         for nCol in range(len(Mapped_Names)):
             Name_Map[f'Mapped Name {nCol}'] = Mapped_Names[nCol]
-        print(Name_Map)
+        # print(Name_Map)
         Name_Map.to_csv(f'{self.raw_data_path}/NamesNew.csv', index=False)
        
         return Name_Map
@@ -353,7 +365,7 @@ class Team_Matching():
         for df in range(1,len(self.raw_dfs)):
             #list the df
             og_df = self.raw_dfs[df]
-            print(og_df)
+            # print(og_df)
             #get the teams from that df
             teams = og_df[self.name_cols[df]].tolist()
             for t in range(len(teams)):
@@ -373,7 +385,7 @@ class Team_Matching():
         
         #PART 2 - Combine the self.raw_dfs using the Names as the cross reference
         #Define lists we need
-        Possible_Additional_Names = ["Betting Spread", "WEI.DVOA", "WEIGHTED DVOA", "WEIGHTEDDVOA", "WEIGHTEDVOA", "DAVE", "TOTAL DAVE", "TOTALDAVE", "TOTAL  DAVE", 'WEI.  DVOA']
+        Possible_Additional_Names = ['WDVOA', 'Betting Spread']# ["Betting Spread", "WEI.DVOA", "WEIGHTED DVOA", "WEIGHTEDDVOA", "WEIGHTEDVOA", "DAVE", "TOTAL DAVE", "TOTALDAVE", "TOTAL  DAVE", 'WEI.  DVOA']
         keep_cols = {}
         df_teams = []
         #Get the teams common to every DF
@@ -402,6 +414,97 @@ class Team_Matching():
         for key in keep_cols.keys():
             Combined_DF[key] = keep_cols.get(key)
         Combined_DF = Combined_DF.reset_index()
-        print(Combined_DF)
+        # print(Combined_DF)
 
         return Combined_DF
+
+
+class EGO_Prediction():
+    def __init__(self, project_path, Map_DF):
+        self.project_path = project_path
+        self.Map = self.Setup_Map(Map_DF)
+
+    def Setup_Map(self, Map_DF):
+        #Need to take all the DVOA_Diffs and map them to an EGO via the total home or away map
+        Game_Locations = ["Away", "Home"]
+        Maps = [{} for i in range(len(Game_Locations))]
+        for loc in range(0, len(Game_Locations)):
+            #Make List of the 2 columns needed
+            DF_EGOs = Map_DF[f'{Game_Locations[loc]} EGO'].tolist()
+            DF_Diffs = Map_DF[f'{Game_Locations[loc]} DVOA Diff Range'].tolist()
+            for diff in range(0, len(DF_Diffs)):
+                LL = float(DF_Diffs[diff].split("to ")[0])
+                UL = float(DF_Diffs[diff].split("to ")[1])
+                if LL == -100:
+                    avg = -75
+                elif UL == 100:
+                    avg = 75
+                else:
+                    avg = round(((LL + UL)/2),2)
+                DF_Diffs[diff] = avg
+                DF_EGOs[diff] = round(float(DF_EGOs[diff]),2)
+                # self.Map
+            Maps[loc] = {DF_Diffs[i]:DF_EGOs[i] for i in range(len(DF_EGOs))}
+            # print(Maps)
+        return Maps
+
+    def Target_Spreads(self, EGO, spread):
+        target_egospr_diffs = [[-3.7,-1.5],[1.5,3.7]]
+        target_spreads = [[],[]]
+        pick = 0
+        for targets in range(len(target_egospr_diffs)):
+            #Get the target spread values
+            for diff in range(len(target_egospr_diffs[targets])):
+                target_spread = round(EGO+target_egospr_diffs[targets][diff],1) #flip the sign since making a spread
+                target_spread = -1*round(target_spread*2)/2 #Round to nearest .5 and flip sign since making a spread
+                target_spreads[targets].append(target_spread) #flip the sign since making a spread
+                #For EGO of 6: [[2.3, 4.5],[7.5,9.7]]
+            #Check if the spread is in this range. If so then make a pick
+            min_spread = target_spreads[targets][0]
+            max_spread = target_spreads[targets][1]
+            if spread <= min_spread and spread >= max_spread: #signs are opposite than intuition since spreads are opposite
+                pick = 1
+
+        return target_spreads, pick
+
+    def Calculate_Data(self, df):
+        self.Calculated_Data = {'WDVOA Delta':[], 'EGO':[], 'Spread to EGO Diff':[], 'Margin to EGO Diff':[], 'Target Spreads':[], 'Make Pick':[], 'Pick':[]}
+        for team_row in range(len(list(df['Season']))):
+            #Get needed stats for the team_row
+            team = df.iloc[team_row]['Team']
+            team_wdvoa = df.iloc[team_row]['WDVOA'].split('%')[0]
+            opp = df.iloc[team_row]['Opponent']
+            loc = df.iloc[team_row]['Home_Team']
+            spread = float(df.iloc[team_row]['Betting Spread'])
+            margin = float(df.iloc[team_row]['Scoring Margin'])
+            #Get Opponent Stats
+            for t in range(len(list(df['Team']))):
+                if opp == list(df['Team'])[t]:
+                    opp_row = t
+                    break
+            opp_wdvoa = df.iloc[opp_row]['WDVOA'].split('%')[0]
+            #Get the WDVOA Diff and Add to the Data
+            wdvoa_diff = float(team_wdvoa)-float(opp_wdvoa)
+            self.Calculated_Data['WDVOA Delta'].append(wdvoa_diff)
+            #Get the EGO and add to the Data
+            EGO = round(np.interp(wdvoa_diff, list(self.Map[loc].keys()), list(self.Map[loc].values())),2)
+            self.Calculated_Data['EGO'].append(EGO)
+            #Get the spread and margin to EGO result difference
+            self.Calculated_Data['Spread to EGO Diff'].append(EGO+spread)
+            self.Calculated_Data['Margin to EGO Diff'].append(margin-EGO)
+            #Get Target Spread for each EGO
+            target_spreads,makePick = self.Target_Spreads(EGO, spread)
+            self.Calculated_Data['Target Spreads'].append(target_spreads)
+            self.Calculated_Data['Make Pick'].append(makePick)
+            if makePick == 0:
+                pick = ""
+            else:
+                if EGO+spread > 0:
+                    pick = team
+                else:
+                    pick = opp
+            self.Calculated_Data['Pick'].append(pick)
+        #final Results
+        # print(self.Calculated_Data)
+        time.sleep(1)
+        return self.Calculated_Data

@@ -35,14 +35,16 @@ if Predict_Current_Games:
     season = 2020
     week = 8
 
+    #Collect and Calculate all the data. Get EGO, Target Spreads and Game Pick if able
     GP = Game_Predictor.NFL_Game_Predictor(project_path, week, season)
-    GP.Do_Stuff()
-
-    # for DVOA_Type in dvoaTypes:
-    #     # Acquire all the DVOA rating data for teams historically, build a model with it, 
-    #     # Use model to assign an Expected Game Outcome (EGO) and add to the standard format of Data
-    #     DVOACollector = DVOA_Collector.DVOA_DATA(project_path, current_week, current_season, DVOA_Type)
-    #     DVOACollector.Do_Stuff()
+    Spread_Target_DF = GP.Spread_Targets
+    
+    #Make a more visualing appealing output where takes the current weeks' Spread target df and look at the spread and target for each game
+        #Will keep only the favorites (spread < 0 or first spread == 0) and Key will be:
+            #Take the spread target of each team and make a metric for how close/far the spread is to being in the metric
+            #Then translate that closeness to how % confident we are to picking either tam (35% for teamA and 65% for TeamB)
+                #Could just be that if 2 of of spread target for team A and 3 off of spread target for teamB, then 2/5 confidence for A and 3/5 confidence for B
+    #Make more data analytics showing success this season by week, EGO/Spread Diff, by X
 
 
 if Update_HistoricalData_Model:
