@@ -1,8 +1,9 @@
-from Analysis_Tools.Parsers import Data_Collection
-from Analysis_Tools.Parsers import DVOA_Collector
-from Analysis_Tools.Parsers import Matchup_Analyzer
-from Analysis_Tools.Parsers import Data_Evaluation
-from Analysis_Tools.Parsers import Game_Predictor
+# from Analysis_Tools.Parsers.Historical import Data_Collection
+# from Analysis_Tools.Parsers.Historical import DVOA_Collector
+# from Analysis_Tools.Parsers.Historical import Matchup_Analyzer
+# from Analysis_Tools.Parsers.Historical import Data_Evaluation
+from Analysis_Tools.Parsers.Current import Game_Predictor
+from Analysis_Tools.Parsers.Current import Prediction_Analysis
 from Analysis_Tools.Setup import Directory_setup
 
 # Set up all the working directories
@@ -33,11 +34,13 @@ if Predict_Current_Games:
     MODE 2 - GET CURRENT DATA, MAKE PREDICTION WITH MODEL, EVALUATE
     '''
     season = 2020
-    week = 8
+    week = 9
 
     #Collect and Calculate all the data. Get EGO, Target Spreads and Game Pick if able
-    GP = Game_Predictor.NFL_Game_Predictor(project_path, week, season)
+    GP = Game_Predictor.NFL_Game_Predictor(project_path, week, season, updateType='Season')
     Spread_Target_DF = GP.Spread_Targets
+
+    PA = Prediction_Analysis.Prediction_Analyzer(project_path, season)
     
     #Make a more visualing appealing output where takes the current weeks' Spread target df and look at the spread and target for each game
         #Will keep only the favorites (spread < 0 or first spread == 0) and Key will be:
