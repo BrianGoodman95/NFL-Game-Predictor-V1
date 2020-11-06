@@ -129,6 +129,10 @@ class NFL_Game_Predictor():
     def Picking_Info(self, raw_data_path, week, df):
         self.User_Message('Determining Spread Targets For Each Game ...')        
         #Output the target spread range for each game
+        #sort by date so output is better
+        df = df.sort_values(by=['Day', 'Time'], ascending=[0,1])  
+        #Only keep the Away Teams' rows  
+        df = df[df.Home_Team == 0]
         predictionDF = pd.DataFrame()
         Teams = list(df['Team'])
         Opponents = list(df['Opponent'])
@@ -154,8 +158,7 @@ class NFL_Game_Predictor():
         predictionDF['Spread'] = spreads 
         predictionDF['Spread Target'] = refined_spreads
         predictionDF['Pick'] =  list(df['Pick'])
-        #Only keep the Away Teams' rows
-        predictionDF = predictionDF[df.Home_Team == 0]
+        # print(predictionDF)
         self.Save_DF(predictionDF, f'{raw_data_path}/Week {week}/Spread Targets.csv')
 
         self.User_Message('Making Picks ...')
