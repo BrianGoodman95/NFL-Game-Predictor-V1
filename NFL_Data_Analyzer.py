@@ -1,7 +1,7 @@
-# from Analysis_Tools.Parsers.Historical import Data_Collection
-# from Analysis_Tools.Parsers.Historical import DVOA_Collector
-# from Analysis_Tools.Parsers.Historical import Matchup_Analyzer
-# from Analysis_Tools.Parsers.Historical import Data_Evaluation
+from Analysis_Tools.Parsers.Historical import Data_Collection
+from Analysis_Tools.Parsers.Historical import DVOA_Collector
+from Analysis_Tools.Parsers.Historical import Matchup_Analyzer
+from Analysis_Tools.Parsers.Historical import Data_Evaluation
 from Analysis_Tools.Parsers.Current import Game_Predictor
 from Analysis_Tools.Parsers.Current import Prediction_Analysis
 from Analysis_Tools.Setup import Directory_setup
@@ -37,7 +37,7 @@ if Predict_Current_Games:
     week = 9
 
     #Collect and Calculate all the data. Get EGO, Target Spreads and Game Pick if able
-    GP = Game_Predictor.NFL_Game_Predictor(project_path, week, season, updateType='Season')
+    GP = Game_Predictor.NFL_Game_Predictor(project_path, week, season, updateType='Week')
     Spread_Target_DF = GP.Spread_Targets
 
     PA = Prediction_Analysis.Prediction_Analyzer(project_path, season)
