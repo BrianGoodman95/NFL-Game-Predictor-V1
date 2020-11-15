@@ -37,7 +37,7 @@ class Prediction_Analyzer():
         
         #Make save locations
         self.project_path = project_path
-        self.raw_data_path = f'{project_path}/Raw Data/{self.season}'
+        self.raw_data_path = f'{project_path}/Raw Data/DVOA_Based/{self.season}'
         self.Make_Folder(self.raw_data_path)
         self.final_csvName = f'{self.raw_data_path}/{self.season} Betting Results.csv'
 
@@ -53,7 +53,7 @@ class Prediction_Analyzer():
             except FileNotFoundError:
                 # print('ERROR')
                 break
-        #Drop lasr row since is incomplete Data
+        #Drop last row since is incomplete Data
         self.Analyzed_Results = self.Analyzed_Results[:-1]
 
         #Save Final Copy for further analysis

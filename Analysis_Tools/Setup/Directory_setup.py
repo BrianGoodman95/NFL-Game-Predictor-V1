@@ -10,7 +10,7 @@ class Create_Directories():
             os.mkdir(Data_Path)
         except FileExistsError:
             pass
-        self.Data_folders = ['Raw Data', 'Raw Data/WDVOA DATA', 'Total Data', 'Total Data/Evaluations', 'ML Data', 'ML Data/Model Data',  'ML Data/Prediction Data',  'ML Data/Train_Test_Data']
+        self.Data_folders = ['Raw Data', 'Raw Data/Stat_Based', 'Raw Data/DVOA_Based', 'Total Data', 'Total Data/Evaluations', 'ML Data', 'ML Data/Model Data',  'ML Data/Prediction Data',  'ML Data/Train_Test_Data']
         for folder_path in self.Data_folders:
             try:
                 os.mkdir(f'{Data_Path}/{folder_path}')

@@ -11,6 +11,8 @@ class Spread_Parser():
         self.Enable_Messaging = Enable_Messaging
         self.week = week
         self.save_path = save_path
+        self.season = int(self.save_path.split('/')[-1])
+        print(self.season)
         self.source = f'https://www.covers.com/sport/football/NFL/odds'
         findSavedData = False #default to getting new spreads
         if os.path.isdir(f'{self.save_path}/Week {self.week+1}'):
@@ -24,7 +26,10 @@ class Spread_Parser():
                 # time.sleep(0.5)
             except:
                 findSavedData = False
-        if findSavedData == False: #Next week doesn't exist, so need to update this week since is the latest
+        if findSavedData == False and self.season <= 2019: #Get spread data from saved database
+            self.formatted_df = self.Get_Old_Spreads()
+            self.saved_df = self.save_spreads(self.formatted_df)
+        elif findSavedData == False: #Next week doesn't exist, so need to update this week since is the latest
             self.raw_df = self.Get_Bet_Stats()
             self.game_df = self.format_game_data(self.raw_df)
             self.formatted_df = self.format_spreads(self.game_df)
@@ -35,6 +40,24 @@ class Spread_Parser():
         if self.Enable_Messaging:
             print(message)
             time.sleep(sleep)
+
+    def Get_Old_Spreads(self):
+        data_path = self.save_path.split('/Raw Data')[0]
+        data = pd.read_csv(f'{data_path}/Total Data/All Seasons WDVOA Picking Results.csv')
+        data = data.loc[(data['Week'] == self.week) & (data['Year'] == self.season) & (data['Home Team'] == 0)] #Get current week of current season and only use away teams
+        df = pd.DataFrame()
+        df['Team 1'] = list(data['Team'])
+        df['Team 2'] = list(data['Opponent'])
+        spreads = list(data['Spread'])
+        spreads = [f'{s} / {s*-1}' for s in spreads] #Put spreads together
+        spreads = [f'+{s}' if float(s.split(' / ')[0])>=0 else s for s in spreads] #Add the + symbol if underdog
+        # print(spreads)
+        df['Betting Spread'] = spreads #Add spreads to df
+        # df['Spread'] = [f'{s} / {s*-1}' for s in spreads] #Add spreads to df
+        df['Open'] = spreads #Add same data to the open since not needed any way
+        df['Game Time'] = ['-' for i in range(len(spreads))]
+        print(÷df)
+        return df
 
     def Get_Bet_Stats(self):
         found_data = False
@@ -127,6 +150,7 @@ class Spread_Parser():
         df['Open'] = open_spreads
         df['Betting Spread'] = bet_spreads
         # self.User_Message(df)
+        # print(df)
         return df
 
     def save_spreads(self, df):
@@ -138,7 +162,7 @@ class Spread_Parser():
         df = df.reindex(columns=final_cols)
         # self.User_Message(df)
         df.to_csv(f'{self.save_path}/Week {self.week}/spreads.xlsx', index=False)
-        # df.to_csv(f'{self.save_path}/Week {self.week}/spreads.csv', index=False)
+        df.to_csv(f'{self.save_path}/Week {self.week}/spreads.csv', index=False)
         return df
 
     def format_by_name(self, df):
@@ -191,7 +215,7 @@ class Game_Info_Parser():
         self.season_wdvoaTeams.sort()
 
     def Get_WDVOA_DF(self):
-        Possible_WeightedDVOA_Names = ["WEI.DVOA", "WEIGHTED DVOA", "WEIGHTEDDVOA", "WEIGHTEDVOA", "DAVE", "TOTAL DAVE", "TOTALDAVE", "TOTAL  DAVE", 'WEI.  DVOA']
+        Possible_WeightedDVOA_Names = ["WEI.DVOA", "WEIGHTED DVOA", "WEIGHTED  DVOA", "WEIGHTEDDVOA", "WEIGHTEDVOA", "DAVE", "TOTAL DAVE", "TOTALDAVE", "TOTAL  DAVE", 'WEI.  DVOA']
         have_df = False
         try:
             URL_BASE = f'https://www.footballoutsiders.com/dvoa-ratings/{self.season}/week-{self.week-1}-dvoa-ratings'
@@ -219,6 +243,7 @@ class Game_Info_Parser():
             pass
         if have_df == False: #Never found a good df
             print(f'No Good Data: {self.season}, week {self.week}')
+            print(pot_dvoaHeaders)
         
         #Drop any header rows
         WDVOA_DF.drop(WDVOA_DF.loc[WDVOA_DF['TEAM']=="TEAM"].index, inplace=True)
@@ -467,7 +492,7 @@ class EGO_Prediction():
         return target_spreads, pick
 
     def Calculate_Data(self, df):
-        self.Calculated_Data = {'WDVOA Delta':[], 'EGO':[], 'Spread to EGO Diff':[], 'Margin to EGO Diff':[], 'Target Spreads':[], 'Make Pick':[], 'Pick':[]}
+        self.Calculated_Data = {'WDVOA Delta':[], 'EGO':[], 'Spread to EGO Diff':[], 'Margin to EGO Diff':[], 'Target Spreads':[], 'Make Pick':[], 'Pick':[], 'Pick Right':[]}
         for team_row in range(len(list(df['Season']))):
             #Get needed stats for the team_row
             team = df.iloc[team_row]['Team']
@@ -476,6 +501,7 @@ class EGO_Prediction():
             loc = df.iloc[team_row]['Home_Team']
             spread = float(df.iloc[team_row]['Betting Spread'])
             margin = float(df.iloc[team_row]['Scoring Margin'])
+            SRD = float(df.iloc[team_row]['SRD'])
             #Get Opponent Stats
             for t in range(len(list(df['Team']))):
                 if opp == list(df['Team'])[t]:
@@ -503,6 +529,13 @@ class EGO_Prediction():
                 else:
                     pick = opp
             self.Calculated_Data['Pick'].append(pick)
+            #EGO correct if EGO/Spread Diff same sign as SRD
+            if margin == 0 and (spread-SRD) == 0: #Game hasn't been played yet since no winner and no difference form spread to scoring margin
+                self.Calculated_Data['Pick Right'].append('')
+            elif (EGO+spread)*SRD>= 0: #Then same sign so correct
+                self.Calculated_Data['Pick Right'].append(1)
+            else: #Got it wrong
+                self.Calculated_Data['Pick Right'].append(0)
         #final Results
         # print(self.Calculated_Data)
         time.sleep(1)

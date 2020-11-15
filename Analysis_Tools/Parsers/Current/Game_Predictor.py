@@ -61,46 +61,59 @@ class NFL_Game_Predictor():
             'EGO':[], 'EGO_Spread_Diff':[], 'EGO_Result_Diff': [], 'Correct':[]
         }
         #Collection parameters
-        self.season = current_season
-        self.min_week = 5
+        min_season=current_season
+        self.min_week = 6
         self.current_week = current_week
-        self.All_Weeks = [w for w in range(self.min_week,self.current_week+1)]
-        if updateType == 'Season':
-            Update_Weeks = self.All_Weeks
+        print(updateType)
+        if updateType == 'Historical':
+            Update_Weeks = [w for w in range(self.min_week,16)]
+            min_season = 2006
+        elif updateType == 'Season':
+            Update_Weeks = [w for w in range(self.min_week,self.current_week+1)]
         elif updateType == 'Week':
             Update_Weeks = [current_week]
         else:
             print('INVALID VALUE IN FIELD UPDATETYPE')
             return
-        #Lists and DFs
-        self.Week_DF = pd.DataFrame()
-        self.All_Weeks_DFs = []
         
-        #Save names
-        self.final_csvName = f'{self.season}/{self.season} Betting Results'
+        for self.season in range(min_season,current_season+1):
+            if self.season <= 2019: #Get weeks to go through for Past seasons
+                self.season_weeks = [w for w in range(self.min_week,16)]
+            else: #Weeks to go through for this season
+                self.season_weeks = [w for w in range(self.min_week,self.current_week+1)]
+                if updateType == 'Historical':
+                    Update_Weeks = self.season_weeks
+            #Lists and DFs
+            self.Week_DF = pd.DataFrame()
+            self.All_Weeks_DFs = []
+            
+            #Make save locations
+            self.project_path = project_path
+            self.raw_data_path = f'{project_path}/Raw Data/DVOA_Based/{self.season}'
+            self.Make_Folder(self.raw_data_path)
 
-        #Make save locations
-        self.project_path = project_path
-        self.raw_data_path = f'{project_path}/Raw Data/{self.season}'
-        # self.output_data_path = f'{project_path}/Prediction Data/{self.season}'
-        self.Make_Folder(self.raw_data_path)
-        # self.Make_Folder(self.output_data_path)
-
-        #Update any Data Needed
-        for week in Update_Weeks:
-            print(f'Analyzing Week: {week} Games ...')
-            #Get the Raw Data we need
-            self.Raw_Game_Data = self.Get_Game_Info(self.raw_data_path, week)       
-            self.Processed_Game_Data = self.Process_Game_Info(self.raw_data_path, week, self.Raw_Game_Data)       
-            self.Calculated_Game_Data = self.Calculate_Game_Info(self.raw_data_path, week, self.Processed_Game_Data)
-            self.Spread_Targets = self.Picking_Info(self.raw_data_path, week, self.Calculated_Game_Data)
+            #Update any Data Needed
+            for week in Update_Weeks:
+                print(f'Analyzing {self.season}, Week: {week} Games ...')
+                #Get the Raw Data we need
+                self.Raw_Game_Data = self.Get_Game_Info(self.raw_data_path, week)       
+                self.Processed_Game_Data = self.Process_Game_Info(self.raw_data_path, week, self.Raw_Game_Data)       
+                self.Calculated_Game_Data = self.Calculate_Game_Info(self.raw_data_path, week, self.Processed_Game_Data)
+                self.Spread_Targets = self.Picking_Info(self.raw_data_path, week, self.Calculated_Game_Data)
+            #Save Final Copy for further analysis
+            week_dfs = []
+            for week in self.season_weeks:
+                df = pd.read_csv(f'{self.raw_data_path}/Week {week}/Calculated Game Data.csv')
+                week_dfs.append(df)
+            df = pd.concat(week_dfs) #Concat the list of dfs into a season df
+            df.to_csv(f'{self.raw_data_path}/Season Game Data.csv', index=False)
         #Save Final Copy for further analysis
-        dfs = []
-        for week in self.All_Weeks:
-            df = pd.read_csv(f'{self.raw_data_path}/Week {week}/Calculated Game Data.csv')
-            dfs.append(df)
-        df = pd.concat(dfs) #Concat the list of dfs into a season df
-        df.to_csv(f'{self.raw_data_path}/Season Game Data.csv', index=False)
+        season_dfs = []
+        for season in range(min_season,self.season+1):
+            season_df = pd.read_csv(f'{project_path}/Raw Data/DVOA_Based/{season}/Season Game Data.csv')
+            season_dfs.append(season_df)
+        season_df = pd.concat(season_dfs) #Concat the list of dfs into a season df
+        season_df.to_csv(f'{project_path}/Raw Data/DVOA_Based/All Game Data.csv', index=False)
 
     def Make_Folder(self, new_path):
         data_exists = False
