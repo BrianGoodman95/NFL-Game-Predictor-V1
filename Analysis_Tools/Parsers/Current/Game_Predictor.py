@@ -71,7 +71,7 @@ class NFL_Game_Predictor():
         elif updateType == 'Season':
             Update_Weeks = [w for w in range(self.min_week,self.current_week+1)]
         elif updateType == 'Week':
-            Update_Weeks = [current_week]
+            Update_Weeks = [current_week-1, current_week]
         else:
             print('INVALID VALUE IN FIELD UPDATETYPE')
             return
@@ -140,6 +140,8 @@ class NFL_Game_Predictor():
             time.sleep(sleep)
 
     def Picking_Info(self, raw_data_path, week, df):
+        #Save the df passed in for picking after
+        new_picks_df = df
         self.User_Message('Determining Spread Targets For Each Game ...')        
         #Output the target spread range for each game
         #sort by date so output is better
@@ -181,9 +183,24 @@ class NFL_Game_Predictor():
         self.picks.remove("")
         # print(self.picks)
         time.sleep(1)
-        pick_df = pd.DataFrame()
-        pick_df['Picks'] = self.picks
-        self.Save_DF(pick_df, f'{raw_data_path}/Week {week}/Picks.csv')
+        #Add the data for picks made for this week
+        All_Picks = []
+        try:
+            pick_df = pd.read_csv(f'{raw_data_path}/Week {week}/Picks.csv')
+            prev_picks = list(pick_df['Pick'])
+        except:
+            pick_df = new_picks_df
+            prev_picks = list(new_picks_df['Pick'])
+        All_Picks.append(pick_df)
+        # new_picks_df = new_picks_df.loc[new_picks_df['Team'].isin(self.picks)] #Keep data for games we're picking only
+        for team in self.picks: #For each team we've picked
+            if team in prev_picks: #Check if our picks already have that team
+                pass
+            else:
+                new_pick_df = new_picks_df.loc[new_picks_df['Team'] == team] #Save this pick
+                All_Picks.append(new_pick_df)
+        All_Picks_DF = pd.concat(All_Picks)
+        self.Save_DF(All_Picks_DF, f'{raw_data_path}/Week {week}/Weekly Picks.csv')
 
         #Later, if week not current one, evaluate if Pick Right or Wrong        
         #Even more later, make fancier visual of current week predictions
@@ -271,7 +288,7 @@ class NFL_Game_Predictor():
         # print(Week_DF)
         #Get the spreads for the week
         self.User_Message(f'Retrieving Spreads for week {week} ...')
-        spread_collector = Prediction_Helper.Spread_Parser(week, raw_data_path)
+        spread_collector = Prediction_Helper.Spread_Parser(week, self.current_week, raw_data_path)
         Spread_DF = spread_collector.parser_df
         # print(Spread_DF)
         # Update Names of Teams to match the WDVOA team names

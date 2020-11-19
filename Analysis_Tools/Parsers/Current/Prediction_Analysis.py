@@ -48,7 +48,7 @@ class Prediction_Analyzer():
             # print(f'Analyzing Week: {week} Picks ...')
             try:
                 #Get the Raw Data we need    
-                self.Calculated_Game_Data = pd.read_csv(f'{self.raw_data_path}/Week {week}/Calculated Game Data.csv')
+                self.Calculated_Game_Data = pd.read_csv(f'{self.raw_data_path}/Week {week}/Weekly Picks.csv')
                 self.Analyze_Data(self.Calculated_Game_Data, self.raw_data_path, week)
             except FileNotFoundError:
                 # print('ERROR')
