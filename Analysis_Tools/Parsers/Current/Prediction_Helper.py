@@ -7,25 +7,30 @@ import requests
 from urllib.request import urlopen
 
 class Spread_Parser():
-    def __init__(self, week, save_path, Enable_Messaging=False):
+    def __init__(self, week, current_week, save_path, Enable_Messaging=False):
         self.Enable_Messaging = Enable_Messaging
         self.week = week
+        self.current_week = current_week
         self.save_path = save_path
         self.season = int(self.save_path.split('/')[-1])
         print(self.season)
         self.source = f'https://www.covers.com/sport/football/NFL/odds'
-        findSavedData = False #default to getting new spreads
-        if os.path.isdir(f'{self.save_path}/Week {self.week+1}'):
-            findSavedData = True #if next week folder exists, then this week isn't latest so look for saved spreads
-        if findSavedData == True:
-            try: #reading the next week. If can, that means this isn't the max week so shouldn't re-get the betting data
-                # print("Checking For Saved Spreads ...")
-                # time.sleep(0.5)
-                self.saved_df = pd.read_csv(f'{self.save_path}/Week {self.week}/spreads.xlsx')
-                # print("Found Saved Data!")
-                # time.sleep(0.5)
-            except:
-                findSavedData = False
+        if self.week == current_week:
+            findSavedData = False #default to getting new spreads
+        else:
+            findSavedData = True #Not current week so get saved spreads
+            self.saved_df = pd.read_csv(f'{self.save_path}/Week {self.week}/spreads.csv')
+        # if os.path.isdir(f'{self.save_path}/Week {self.week+1}'):
+        #     findSavedData = True #if next week folder exists, then this week isn't latest so look for saved spreads
+        # if findSavedData == True:
+        #     try: #reading the next week. If can, that means this isn't the max week so shouldn't re-get the betting data
+        #         # print("Checking For Saved Spreads ...")
+        #         # time.sleep(0.5)
+        #         self.saved_df = pd.read_csv(f'{self.save_path}/Week {self.week}/spreads.csv')
+        #         # print("Found Saved Data!")
+        #         # time.sleep(0.5)
+        #     except:
+        #         findSavedData = False
         if findSavedData == False and self.season <= 2019: #Get spread data from saved database
             self.formatted_df = self.Get_Old_Spreads()
             self.saved_df = self.save_spreads(self.formatted_df)
@@ -56,7 +61,7 @@ class Spread_Parser():
         # df['Spread'] = [f'{s} / {s*-1}' for s in spreads] #Add spreads to df
         df['Open'] = spreads #Add same data to the open since not needed any way
         df['Game Time'] = ['-' for i in range(len(spreads))]
-        print(÷df)
+        # print(df)
         return df
 
     def Get_Bet_Stats(self):
@@ -86,8 +91,8 @@ class Spread_Parser():
         matchup_df = df_list[2] #3rd table
         spreads_df = df_list[3] #4th table
         betting_spreads = spreads_df.iloc[:,-1] #Get the last column
-        betting_spreads2 = list(spreads_df.iloc[:,-2]) #Get the 2nd last column
-        matchup_df['Betting Spread'] = betting_spreads2
+        # betting_spreads = list(spreads_df.iloc[:,-2]) #Get the 2nd last column
+        matchup_df['Betting Spread'] = betting_spreads
     
         #Clean up the Data
         all_cols = list(matchup_df)
@@ -161,7 +166,7 @@ class Spread_Parser():
         final_cols = ['Opening Spread', 'Team 1', 'Team 2', 'Game Time', 'Betting Spread']
         df = df.reindex(columns=final_cols)
         # self.User_Message(df)
-        df.to_csv(f'{self.save_path}/Week {self.week}/spreads.xlsx', index=False)
+        # df.to_csv(f'{self.save_path}/Week {self.week}/spreads.xlsx', index=False)
         df.to_csv(f'{self.save_path}/Week {self.week}/spreads.csv', index=False)
         return df
 
