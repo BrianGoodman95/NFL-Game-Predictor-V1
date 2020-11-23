@@ -42,6 +42,9 @@ if Predict_Current_Games:
 
     PA = Prediction_Analysis.Prediction_Analyzer(project_path, season)
     
+    ### Need to add part that saves any picks in separate doc incase the spreads/picks change during the week
+        ### If the pick of a game changes, then save that in addition to the already made pick
+    ### Then can evaluate success of all those picks throughout the week
 
 if Update_HistoricalData_Model:
     '''
