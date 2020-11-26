@@ -273,7 +273,11 @@ class NFL_Game_Predictor():
         #WDVOA DATA
         self.User_Message(f'Retrieving WDVOA Data for week {week} ...')
         try: #IF CAN READ PREVIOUSLY SAVED DVOA DATA
+            # if week == 12:
+            # WDVOA_DF = pd.read_csv(f'{raw_data_path}/Week {week-1}/DVOA Data.csv')
+            # else:
             WDVOA_DF = pd.read_csv(f'{week_path}/DVOA Data.csv')
+            # self.Save_DF(WDVOA_DF, f'{week_path}/DVOA Data.csv') 
         except: #IF NEED TO GET NEW DVOA DATA
             game_info_collector = Prediction_Helper.Game_Info_Parser(week, self.season)
             WDVOA_DF = game_info_collector.WDVOA_DF

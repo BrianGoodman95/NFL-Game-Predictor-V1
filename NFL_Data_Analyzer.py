@@ -34,7 +34,7 @@ if Predict_Current_Games:
     MODE 2 - GET CURRENT DATA, MAKE PREDICTION WITH MODEL, EVALUATE
     '''
     season = 2020
-    week = 10
+    week = 12
 
     #Collect and Calculate all the data. Get EGO, Target Spreads and Game Pick if able
     GP = Game_Predictor.NFL_Game_Predictor(project_path, week, season, updateType='Season')
