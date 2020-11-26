@@ -20,17 +20,9 @@ class Spread_Parser():
         else:
             findSavedData = True #Not current week so get saved spreads
             self.saved_df = pd.read_csv(f'{self.save_path}/Week {self.week}/spreads.csv')
-        # if os.path.isdir(f'{self.save_path}/Week {self.week+1}'):
-        #     findSavedData = True #if next week folder exists, then this week isn't latest so look for saved spreads
-        # if findSavedData == True:
-        #     try: #reading the next week. If can, that means this isn't the max week so shouldn't re-get the betting data
-        #         # print("Checking For Saved Spreads ...")
-        #         # time.sleep(0.5)
-        #         self.saved_df = pd.read_csv(f'{self.save_path}/Week {self.week}/spreads.csv')
-        #         # print("Found Saved Data!")
-        #         # time.sleep(0.5)
-        #     except:
-        #         findSavedData = False
+            if week == 8: #Since the csv won't keep the properly formatted data for some reason..
+                self.saved_df = pd.read_csv(f'{self.save_path}/Week {self.week}/spreads.xlsx')
+
         if findSavedData == False and self.season <= 2019: #Get spread data from saved database
             self.formatted_df = self.Get_Old_Spreads()
             self.saved_df = self.save_spreads(self.formatted_df)
@@ -375,7 +367,7 @@ class Team_Matching():
         for nCol in range(len(Mapped_Names)):
             Name_Map[f'Mapped Name {nCol}'] = Mapped_Names[nCol]
         # print(Name_Map)
-        Name_Map.to_csv(f'{self.raw_data_path}/NamesNew.csv', index=False)
+        Name_Map.to_csv(f'{self.raw_data_path}/Names.csv', index=False)
        
         return Name_Map
 
