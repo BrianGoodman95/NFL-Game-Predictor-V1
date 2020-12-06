@@ -1,116 +1,144 @@
 # -*- coding: utf-8 -*-
-
 # Run this app with `python app.py` and
 # visit http://127.0.0.1:8050/ in your web browser.
 
 import dash
+import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
-import plotly.express as px
 import pandas as pd
-import os
+import threading
+import time
+
+import frontend
+from parsers.setup import Directory_setup, Dashboard_setup
+setup = Directory_setup.Create_Directories()
+project_path = setup.project_path
+
+season, week = Dashboard_setup.This_Week()
+Data = Dashboard_setup.Data(project_path, season)
+
+colours = Dashboard_setup.colours
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-app = dash.Dash()#__name__, external_stylesheets=external_stylesheets)
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets) 
 
-project_path = os.getcwd().split('Dashboard')[0]
-data_path = f'{project_path}/Data/Raw Data/DVOA_Based'
-model_path = f'{project_path}/Data/Total Data/Models'
-data = pd.read_csv(f'{data_path}/All Game Data.csv')
-model = pd.read_csv(f'{model_path}/All Seasons Scores Grouped By WDVOA Diff.csv')
-
-colors = {
-    'background': 'rgba(0,0,0,0)',
-    'text': '#7FDBFF'
-}
-
-Locs = ['Away', 'Home']
-Leg = ['Avg Game Margin', 'EGO lobf']
-Figs = []
-for loc in Locs:
-    dvoa_ranges = list(model[f'{loc} DVOA Diff Range'])
-    avgs = []
-    for r in dvoa_ranges:
-        vals = r.split(' to ')
-        avg = (float(vals[0])+float(vals[1]))/2
-        avgs.append(avg)
-    model[f'{loc} DVOA Diff'] = avgs
-    avg_spreads = [f'Avg Spread: {i}' for i in list(model[f'{loc} Avg Spread'])]
-    
-    fig = (px.scatter(model, x=f'{loc} DVOA Diff', y=f'{loc} Avg Game Margin').update_traces(mode='markers', marker=dict(size=3),showlegend = True))
-    fig.add_scatter(x=model[f'{loc} DVOA Diff'], y=model[f'{loc} EGO'], mode='lines', hovertext= avg_spreads, hoverinfo="text",)
-    fig.data[0].name = 'Avg Score Margin'
-    fig.data[1].name = 'EGO lobf'
-    fig.update_layout(dict(plot_bgcolor=colors['background'], paper_bgcolor=colors['background']))#, height = 500, width=1000))
-    Figs.append(fig)
-    # fig.show()
-
-app.layout = html.Div(style={'backgroundColor': colors['background']}, children=[
-    html.H1(
-        children='Hello Dash',
-        style={
+# app.layout = html.Div(style={'backgroundColor': colours['background']}, children=[
+app.layout = html.Div([
+    html.Div([
+        html.H1('NFL Betting Predictor',
+            style={
+                'textAlign': 'center',
+                'color': colours['title']
+            }
+        ),
+        html.H4('A Data Based Model to Pick Games and Win $$$', 
+            style={
             'textAlign': 'center',
-            'color': colors['text']
-        }
-    ),
-
-    html.Div(children='Dash: A web application framework for Python.', style={
-        'textAlign': 'center',
-        'color': colors['text']
-    }),
+            'color': colours['font']
+            }
+        ),
+    ]),
     html.Div([
         html.Div([
-            html.H3(children='Away Team Model', style={
-                'textAlign': 'center',
-                'color': colors['text']
-            }),
-            dcc.Graph(id='away-team-model', figure=Figs[0])
-        ], className='six columns'),
+            html.H4(f'Week {week} Betting Guide',
+                style={
+                'textAlign': 'left',
+                'color': colours['font'],
+                'margin-left': 65,
+                }
+            ),
+            dash_table.DataTable(
+                id='table',
+                columns=[{"name": i, "id": i} for i in Data[0].columns],
+                data=Data[0].to_dict("rows"),
+                style_table={
+                    'maxHeight': '75ex',
+                    'overflowY': 'scroll',
+                    'width': '75%',
+                    'minWidth': '75%',
+                    "margin-left": 50,
+                },
+            ),
+        ], className="six columns"),
         html.Div([
-            html.H3(children='Home Team Model', style={
-                'textAlign': 'center',
-                'color': colors['text']
-            }),            
-            dcc.Graph(id='home-team-model', figure=Figs[1])
-        ], className='six columns')
-    ])
+            html.H3('2020 Betting Results',
+                style={
+                    'textAlign': 'center',
+                    'color': colours['graph_text']
+                }
+            ),
+            dcc.Dropdown(id='season-results',
+                options=[{'label': s, 'value': s}
+                        for s in list(Data[1])[:-4]],
+                value=list(Data[1])[:2],#+Data[1][-1],
+                multi=True
+                ),
+            html.Div(children=html.Div(id='Season_Results')),
+            dcc.Interval(
+                id='column_update',
+                interval=100),
+            ], className="six columns"),#,style={'width':'50%','margin-left':10,'margin-right':10,'max-width':50000})
+    ], className="row"),  
+    html.Div([
+        html.Div([
+            html.H3('Historical Data',
+                style={
+                    'textAlign': 'center',
+                    'color': colours['graph_text']
+                }
+            ),
+            dcc.Dropdown(id='historical-results',
+                options=[{'label': s, 'value': s}
+                        for s in list(Data[2])[:-3]],
+                # placeholder="Select a metric to analyze the models betting accuracy...",
+                value=list(Data[2])[0],
+                ),
+            html.Div(children=html.Div(id='Historical_Results')),
+            dcc.Interval(
+                id='data-update',
+                interval=100),
+            ], className="twelve columns",style={'width':'80%', 'height':'100ex', 'margin-left':175,'margin-right':175,'max-width':50000})
+    ], className="row")        
 ])
-app.css.append_css({
-    'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'
-})
+
+@app.callback(
+    dash.dependencies.Output('Season_Results','children'),
+    [dash.dependencies.Input('season-results', 'value')],
+    events=[dash.dependencies.State('column-update', 'interval')]
+    )
+def season_data(data_names):
+    Data = Dashboard_setup.Data(project_path, season)
+    Results = []
+    # for res, data in enumerate(Data):
+    Make_Figure = frontend.Plots()
+    fig = Make_Figure.Season_Results(Data[1],data_names)
+    # Prediction_Results = frontend.Season_Results(Data[1], season)
+    # fig = Prediction_Results.fig
+    Results.append(html.Div(dcc.Graph(id='season-data', figure=fig)))
+
+    return Results
+
+
+@app.callback(
+    dash.dependencies.Output('Historical_Results','children'),
+    [dash.dependencies.Input('historical-results', 'value')],
+    events=[dash.dependencies.State('data-update', 'interval')]
+    )
+def historical_data(data_names):
+    Data = Dashboard_setup.Data(project_path, season)
+    Results = []
+    # for res, data in enumerate(Data):
+    Make_Figure = frontend.Plots()
+    fig = Make_Figure.Historical_Results(Data[2], data_names)
+    Results.append(html.Div(dcc.Graph(id='historical-data', figure=fig)))
+
+    return Results
+
+# app.css.append_css({
+#     'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'
+# })
+
 if __name__ == '__main__':
     app.run_server(debug=True)
-
-
-# app.layout = html.Div(children=[
-#     html.Div(children='''
-#         Symbol to graph:
-#     '''),
-#     dcc.Input(id='input', value='', type='text'),
-#     html.Div(id='output-graph'),
-# ])
-
-# @app.callback(
-#     Output(component_id='output-graph', component_property='children'),
-#     [Input(component_id='input', component_property='value')]
-# )
-# def update_value(input_data):
-#     start = datetime.datetime(2015, 1, 1)
-#     end = datetime.datetime.now()
-#     df = web.DataReader(input_data, 'morningstar', start, end)
-#     df.reset_index(inplace=True)
-#     df.set_index("Date", inplace=True)
-#     df = df.drop("Symbol", axis=1)
-
-#     return dcc.Graph(
-#         id='example-graph',
-#         figure={
-#             'data': [
-#                 {'x': df.index, 'y': df.Close, 'type': 'line', 'name': input_data},
-#             ],
-#             'layout': {
-#                 'title': input_data
-#             }
-#         }
-#     )

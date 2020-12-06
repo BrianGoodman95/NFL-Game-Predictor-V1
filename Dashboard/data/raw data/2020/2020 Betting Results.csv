@@ -1,0 +1,6 @@
+,Season,Week,Games,EGO Correct,EGO Wrong,EGO Accuracy,Picked Games,Picks Correct,Picks Wrong,Pick Accuracy,Season EGO Accuracy,Season Picks Accuracy
+0,2020,7,14,7,7,50.0,7,3,4,42.86,50.0,43.0
+1,2020,8,14,8,6,57.14,6,5,1,83.33,54.0,62.0
+2,2020,9,14,9,5,64.29,6,3,3,50.0,56.99999999999999,57.99999999999999
+3,2020,10,14,9,5,64.29,8,5,3,62.5,59.0,59.0
+4,2020,11,14,12,2,85.71,5,5,0,100.0,64.0,66.0
